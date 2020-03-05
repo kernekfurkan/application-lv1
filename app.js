@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const fs = require('fs');
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
@@ -30,8 +31,9 @@ let sql_kisiler = `CREATE TABLE IF NOT EXISTS kisiler (
 let sql_etkinlik = `CREATE TABLE IF NOT EXISTS etkinlik (
     etkinlik_tarihi date NOT NULL,
     yazar_id VARCHAR(20) NOT NULL
-    
-)`;
+);ALTER TABLE \`etkinlik\` ADD \`etkinlik_adi\` VARCHAR(20) NOT NULL AFTER \`etkinlik_tarihi\`;
+ALTER TABLE \`etkinlik\` ADD \`Katılımcilar\` JSON NOT NULL AFTER \`yazar_id\`;
+`;
 function sorgu_ileti(x,y=undefined){ dbConnection.connect((err) => {
   if (err) throw err;
   dbConnection.query(x,y,(err,results)=> {
@@ -43,9 +45,31 @@ function sorgu_ileti(x,y=undefined){ dbConnection.connect((err) => {
 });};
 let kisi_ekle = `INSERT INTO kisiler values(NULL ,?,?)`;
 let kisiler_ekle = `INSERT INTO kisiler(kisi_adi,kisi_soyadi) values ?`
-let admin_kisi = ['Ahmet','Yılmaz'];
 
-sorgu_ileti(kisiler_ekle,kisiler);
+
+//sorgu_ileti(kisiler_ekle,kisiler);
+
+app.get('/kullanici-list',(req,res) => {
+  fs.readFile('./helper/jdb_kullanici.json','utf8',(err,data)=>{
+    res.send(data);
+  })
+ });
+
+app.get('/kullanici-ekle',(req,res) => {
+  fs.readFile('./helper/jdb_kullanici.json','utf8',(err,data)=>{
+    data = JSON.parse(data);
+    let  yeni_kullanici = {
+      "5" : {
+          "ad" : req.query.ad,
+          "soyad" :   req.query.soyad }
+    }
+    data["5"] = yeni_kullanici["5"];
+    res.send(JSON.stringify(data));
+    fs.writeFile('./helper/jdb_kullanici.json',JSON.stringify(data),(err) => {
+      console.log('jdb_kullanici.json dosyasına yazarken bir hata oluştu.')
+    })
+  })
+});
 
 
 
@@ -65,9 +89,10 @@ dbConnection.state;
 
 
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+let server = app.listen(701,() => {
+  console.log('server aktif');
+})
+
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -89,9 +114,9 @@ app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
+
   res.status(err.status || 500);
-  res.render('error');
+  res.send('error');
 });
 
 
