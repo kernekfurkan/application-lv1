@@ -71,6 +71,26 @@ app.get('/kullanici-ekle',(req,res) => {
   })
 });
 
+app.get('/etkinlik-ekle',(req,res) => {
+  fs.readFile('./helper/jdb_etkinlik.json','utf8',(err,data)=>{
+    data = JSON.parse(data);
+    data1 = fs.readFile('./helper/jdb_kullanici.json',(err,data) => {
+      return JSON.stringify(data);
+    } )
+    let  yeni_etkinlik = {
+      "2020-03-06" : {
+        "etkinlik_adı" : req.query.etkinlik_adı,
+        "yazar_id" :   req.query.yazar_id,
+        "katılımcilar": data1 }
+    }
+    data["2020-03-06"] = yeni_etkinlik["2020-03-06"];
+    res.send(JSON.stringify(data));
+    fs.writeFile('./helper/jdb_etkinlik.json',JSON.stringify(data),(err) => {
+      console.log('jdb_kullanici.json dosyasına yazarken bir hata oluştu.')
+    })
+  })
+});
+
 
 
 dbConnection.state;
