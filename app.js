@@ -20,6 +20,68 @@ let dbConnection = mysql.createConnection({
   database : 'application'
 });
 
+/////////LOGİN////////////////////////
+const ifLoggedin = (req,res,next) => {
+  if(req.session.isLoggedIn){
+    return res.redirect('/anasayfa');
+  }
+  next();
+};
+app.post('/', ifLoggedin, [
+  (req) => {
+    return dbConnection.execute('SELECT `email` FROM `login` WHERE `email`=?', [req.query.email])
+        .then(([rows]) => {
+          if(rows.length == 1){
+            return true;
+
+          }
+          return Promise.reject('Geçersiz email.');
+
+        });
+  },
+  req.query.email.trim().not().isEmpty(),
+], (req, res) => {
+  const validation_result = validationResult(req);
+  const {password, user_name} = {req.password, req.email};
+  if(validation_result.isEmpty()){
+
+    dbConnection.execute("SELECT * FROM `login` WHERE `email`=?",[email])
+        .then(([rows]) => {
+          bcrypt.compare(user_pass, rows[0].password).then(compare_result => {
+            if(compare_result === true){
+              req.session.isLoggedIn = true;
+              req.session.userID = rows[0].id;
+
+              res.redirect('/');
+            }
+            else{
+              res.redirect('/login',{
+                login_errors:['Şifre Hatalı']
+              });
+            }
+          })
+              .catch(err => {
+                if (err) throw err;
+              });
+
+
+        }).catch(err => {
+      if (err) throw err;
+    });
+  }
+  else{
+    let allErrors = validation_result.errors.map((error) => {
+      return error.msg;
+    });
+    res.send('/login',{
+      login_errors:allErrors
+    });
+  }
+});
+
+
+
+////////APLİCATİON///////////////////
 
 let sql_kisiler = `CREATE TABLE IF NOT EXISTS kisiler (
   kisi_sira INT AUTO_INCREMENT NOT NULL,
